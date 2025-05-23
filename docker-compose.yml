@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  tester:
+    build: .
+
+    volumes:
+      - ./:/app
+    working_dir: /app
