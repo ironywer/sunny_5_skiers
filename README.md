@@ -1,75 +1,68 @@
-# System prototype for biathlon competitions
-The prototype must be able to work with a configuration file and a set of external events of a certain format.
-Solution should contain golang (1.20 or newer) source file/files and unit tests (optional)
+## Описание
 
-## Configuration (json)
+Консольное приложение-прототип для обработки результатов соревнований по биатлону.
+Всё происходит в несколько этапов:
 
-- **Laps**        - Amount of laps for main distance
-- **LapLen**      - Length of each main lap
-- **PenaltyLen**  - Length of each penalty lap
-- **FiringLines** - Number of firing lines per lap
-- **Start**       - Planned start time for the first competitor
-- **StartDelta**  - Planned interval between starts
+1. Чтение JSON-конфигурации (количество кругов, дистанции, интервалы старта и т.п.).
+2. Парсинг входного файла со временными метками и событиями (регистрация, старт, стрельба, штрафы, финиш).
+3. Заполнение информации для каждого участника с генерацией исходящих событий (дисквалификация, финиш).
+4. Формирование итогового табличного отчёта и логирование полного хода гонки.
 
-## Events
-All events are characterized by time and event identifier. Outgoing events are events created during program operation. Events related to the "incoming" category cannot be generated and are output in the same form as they were submitted in the input file.
+## Требования
 
-- All events occur sequentially in time. (***Time of event N+1***) >= (***Time of event N***)
-- Time format ***[HH:MM:SS.sss]***. Trailing zeros are required in input and output
+* Go 1.20 или новее
+* (опционально) Docker, если вы предпочитаете запускать тесты и приложение в контейнере
 
-#### Common format for events:
-[***time***] **eventID** **competitorID** extraParams
+## Установка и сборка
 
-```
-Incoming events
-EventID | extraParams | Comments
-1       |             | The competitor registered
-2       | startTime   | The start time was set by a draw
-3       |             | The competitor is on the start line
-4       |             | The competitor has started
-5       | firingRange | The competitor is on the firing range
-6       | target      | The target has been hit
-7       |             | The competitor left the firing range
-8       |             | The competitor entered the penalty laps
-9       |             | The competitor left the penalty laps
-10      |             | The competitor ended the main lap
-11      | comment     | The competitor can`t continue
-```
-An competitor is disqualified if he/she does not start during his/her start interval. This marked as **NotStarted** in final report.
-If the competitor can`t continue it should be marked in final report as **NotFinished**
+1. Клонируйте репозиторий и перейдите в корень проекта:
 
-```
-Outgoing events
-EventID | extraParams | Comments
-32      |             | The competitor is disqualified
-33      |             | The competitor has finished
-```
+   ```bash
+   git clone https://github.com/ironywer/sunny_5_skiers.git
+   cd sunny_5_skiers
+   ```
+2. Подтяните зависимости:
 
-## Final report
-The final report should contain the list of all registered competitors
-sorted by ascending time.
-- Total time includes the difference between scheduled and actual start time or **NotStarted**/**NotFinished** marks
-- Time taken to complete each lap
-- Average speed for each lap [m/s]
-- Time taken to complete penalty laps
-- Average speed over penalty laps [m/s]
-- Number of hits/number of shots
+   ```bash
+   go mod tidy
+   ```
+3. Соберите исполняемый файл:
 
-Examples:
+   ```bash
+   go build -o biathlon ./main
+   ```
 
-`Config.conf`
+## Конфигурационный файл (config.json)
+
+Пример:
+
 ```json
 {
-    "laps" : 2,
-    "lapLen": 3651,
-    "penaltyLen": 50,
-    "firingLines": 1,
-    "start": "09:30:00",
-    "startDelta": "00:00:30"
+  "laps": 2,
+  "lapLen": 3651,
+  "penaltyLen": 50,
+  "firingLines": 1,
+  "start": "09:30:00.000",
+  "startDelta": "00:00:30.000"
 }
 ```
 
-`IncomingEvents`
+* **laps** — число кругов
+* **lapLen** — длина круга (м)
+* **penaltyLen** — длина штрафного круга (м)
+* **firingLines** — число огневых рубежей за круг
+* **start** — плановое время старта первого участника
+* **startDelta** — интервал между стартами
+
+## Входной файл событий (events.txt)
+
+Каждая строка — отдельное событие в формате
+
+```
+[HH:MM:SS.sss] EventID CompetitorID [ExtraParams]
+```
+
+Пример:
 
 ```
 [09:05:59.867] 1 1
@@ -86,27 +79,48 @@ Examples:
 [09:51:48.391] 9 1
 [09:59:03.872] 10 1
 [09:59:03.872] 11 1 Lost in the forest
-
 ```
 
-`Output log`
-```
-[09:05:59.867] The competitor(1) registered
-[09:15:00.841] The start time for the competitor(1) was set by a draw to 09:30:00.000
-[09:29:45.734] The competitor(1) is on the start line
-[09:30:01.005] The competitor(1) has started
-[09:49:31.659] The competitor(1) is on the firing range(1)
-[09:49:33.123] The target(1) has been hit by competitor(1)
-[09:49:34.650] The target(2) has been hit by competitor(1)
-[09:49:35.937] The target(4) has been hit by competitor(1)
-[09:49:37.364] The target(5) has been hit by competitor(1)
-[09:49:38.339] The competitor(1) left the firing range
-[09:49:55.915] The competitor(1) entered the penalty laps
-[09:51:48.391] The competitor(1) left the penalty laps
-[09:59:03.872] The competitor(1) ended the main lap
-[09:59:05.321] The competitor(1) can`t continue: Lost in the forest
+* EventID 1…11 — коды входящих событий (зарегистрирован, стартовал, мишень и т.д.)
+* ExtraParams используется для времени старта (EventID 2) или текста комментария (ID 11)
+
+## Запуск
+
+```bash
+./biathlon config.json events.txt
 ```
 
-`Resulting table`
+* В консоли появится итоговый отчёт:
+
+  ```
+  [NotFinished] 1 [{00:29:03.872, 2.093}, {,}] {00:01:44.296, 0.481} 4/5
+  ```
+* Полный лог входящих и исходящих событий сохранится в файле `events.log`
+
+## Логи и отчёт
+
+* **events.log** — хронологический вывод всех событий (входящих и сгенерированных)
+* Консольный вывод — финальная таблица по каждому участнику:
+
+  * Статус (`NotStarted`/`NotFinished` или общее время)
+  * Время и скорость каждого круга
+  * Время и скорость штрафных кругов
+  * Попадания/выстрелы
+
+## Юнит-тесты
+
+Запустить все тесты и получить покрытие(под Windows может работать некорректно, смотреть Docker):
+
+```bash
+go test ./... -v -cover
 ```
-[NotFinished] 1 [{00:29:03.872, 2.093}, {,}] {00:01:44.296, 0.481} 4/5
+
+## Docker (опционально)
+
+Если вы предпочитаете контейнерный подход, можно воспользоваться готовым `Dockerfile` и `docker-compose.yml`. Используется образ `alpine`(linux):
+
+```bash
+docker compose up --build
+```
+
+— это автоматически соберёт образ на Go 1.20, запустит все тесты с покрытием и выведет результат в консоль.
