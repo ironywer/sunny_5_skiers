@@ -26,8 +26,8 @@ func TestLoadEvents_Success(t *testing.T) {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "events.txt")
 	content := `[09:15:00.841] 2 1 09:30:00.000
-	[09:49:33.123] 6 1 1
-	[09:49:35.937] 6 1 4`
+[09:49:33.123] 6 1 1
+[09:49:35.937] 6 1 4`
 	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write temp file: %v", err)
 	}

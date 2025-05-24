@@ -50,7 +50,7 @@ func TestNotStartedBranch(t *testing.T) {
 		{Fixtime: mustParse(t, "00:00:00.000"), EventId: 2, CompetitorId: 1, ExtraParams: "00:00:00.000"},
 		{Fixtime: mustParse(t, "00:00:15.000"), EventId: 4, CompetitorId: 1},
 	}
-	comps := proccessEvents(cfg, evs)
+	comps := ProcessEvents(cfg, evs)
 	c := comps[1]
 
 	if !c.NotStarted {
@@ -77,14 +77,14 @@ func TestNotFinishedBranch(t *testing.T) {
 		{Fixtime: mustParse(t, "00:00:00.000"), EventId: 4, CompetitorId: 2},
 		{Fixtime: mustParse(t, "00:01:00.000"), EventId: 11, CompetitorId: 2, ExtraParams: "failed"},
 	}
-	comps := proccessEvents(cfg, evs)
+	comps := ProcessEvents(cfg, evs)
 	c := comps[2]
 
 	if !c.NotFinished {
 		t.Errorf("expected NotFinished=true, got false")
 	}
 	log := readLog(t)
-	if !strings.Contains(log, "can`t continue:failed") {
+	if !strings.Contains(log, "can`t continue: failed") {
 		t.Error("log missing NotFinished message")
 	}
 }
@@ -102,7 +102,7 @@ func TestPenaltyBranch(t *testing.T) {
 		{Fixtime: mustParse(t, "00:00:15.000"), EventId: 9, CompetitorId: 3},
 		{Fixtime: mustParse(t, "00:00:20.000"), EventId: 10, CompetitorId: 3},
 	}
-	comps := proccessEvents(cfg, evs)
+	comps := ProcessEvents(cfg, evs)
 	c := comps[3]
 
 	if c.PenaltyCount != 1 {
@@ -135,7 +135,7 @@ func TestHitsAndShotsBranch(t *testing.T) {
 		{Fixtime: mustParse(t, "00:01:04.000"), EventId: 7, CompetitorId: 4},
 		{Fixtime: mustParse(t, "00:02:00.000"), EventId: 10, CompetitorId: 4},
 	}
-	comps := proccessEvents(cfg, evs)
+	comps := ProcessEvents(cfg, evs)
 	c := comps[4]
 
 	if c.Hits != 3 || c.Shots != 3 {
@@ -159,7 +159,7 @@ func TestMultipleLapsBranch(t *testing.T) {
 		{Fixtime: mustParse(t, "00:01:00.000"), EventId: 10, CompetitorId: 5},
 		{Fixtime: mustParse(t, "00:02:30.000"), EventId: 10, CompetitorId: 5},
 	}
-	comps := proccessEvents(cfg, evs)
+	comps := ProcessEvents(cfg, evs)
 	c := comps[5]
 
 	if len(c.LapTimes) != 2 {

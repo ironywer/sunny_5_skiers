@@ -36,7 +36,7 @@ type OutgoingEvent struct {
 	EventId int
 }
 
-func proccessEvents(cfg *config.Config, events []event.Event) map[int]*Competitor {
+func ProcessEvents(cfg *config.Config, events []event.Event) map[int]*Competitor {
 
 	f, err := os.OpenFile("events.log",
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND,
@@ -135,7 +135,8 @@ func proccessEvents(cfg *config.Config, events []event.Event) map[int]*Competito
 
 		case 11: // не может продолжить
 			c.NotFinished = true
-			log.Printf("[%s] The competitor(%d) can`t continue:%s\n",
+			c.ActualStart = ev.Fixtime
+			log.Printf("[%s] The competitor(%d) can`t continue: %s\n",
 				config.FormatClock(ev.Fixtime), ev.CompetitorId, ev.ExtraParams)
 		}
 	}
@@ -143,6 +144,7 @@ func proccessEvents(cfg *config.Config, events []event.Event) map[int]*Competito
 	for _, c := range competitors {
 		if !c.Started && !c.NotStarted {
 			c.NotStarted = true
+			c.ActualStart = c.OutgoingEvents[0].Time
 			disqTime := c.ScheduledAt + cfg.StartDelta
 			c.OutgoingEvents = append(c.OutgoingEvents,
 				OutgoingEvent{Time: disqTime, EventId: 32})
